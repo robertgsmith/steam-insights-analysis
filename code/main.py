@@ -25,12 +25,12 @@ import matplotlib.pyplot as plt
 f.start = t.time()
 
 # ────── define all the original file's paths ────────────────────────────────────────────────────
-git_review = r'data/raw/reviews.csv'
-git_st_i = r'data/raw/steamspy_insights.csv'
-git_genres = r'data/raw/genres.csv'
-git_games = r'data/raw/games.csv'
-git_tags = r'data/raw/tags.csv'
-git_category = r'data/raw/categories.csv'
+git_review = r'steam-insights-analysis/data/raw/reviews.csv'
+git_st_i = r'steam-insights-analysis/data/raw/steamspy_insights.csv'
+git_genres = r'steam-insights-analysis/data/raw/genres.csv'
+git_games = r'steam-insights-analysis/data/raw/games.csv'
+git_tags = r'steam-insights-analysis/data/raw/tags.csv'
+git_category = r'steam-insights-analysis/data/raw/categories.csv'
 f.time_helper('File Paths defined')
 
 # ────── Read all files, avoiding brocken values ────────────────────────────────────────────────────
@@ -182,7 +182,7 @@ scorring_merged = scorring_merged.sort_values(by="Final Score", ascending=False)
 # f.stat_simple_plot(eng_rat,'% Engagement Score_linear_norm')
 
 # ────── Result creation and saving ────────────────────────────────────────────────────
-scorring_merged.to_excel('data/results/scorring_merged_WINNERS.xlsx')
+scorring_merged.to_excel('steam-insights-analysis/data/results/scorring_merged_WINNERS.xlsx')
 f.time_helper('Done!')
 
 
