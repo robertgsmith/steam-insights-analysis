@@ -16,7 +16,7 @@ import json
 import re
 import sys
 import csv
-#from transformers import pipeline
+from transformers import pipeline
 from tqdm import tqdm
 import time as t
 
