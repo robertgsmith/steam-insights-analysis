@@ -174,16 +174,19 @@ weights = {'Quality': 0.4, 'Revenue': 0.3, 'Growth': 0.2, 'Engagement':0.1}
 scorring_merged['Final Score'] = scorring_merged[list(weights.keys())].dot(list(weights.values()))
 scorring_merged = scorring_merged.sort_values(by="Final Score", ascending=False).reset_index(drop=True)
 
-scorring_merged.to_excel('data/results/scorring_merged_WINNERS.xlsx')
-f.time_helper('Done!')
-
-
 # ────── Performance of final checks ────────────────────────────────────────────────────
 # f.stat_histogram(acq_rate,'growth_potential_mean_log_norm')
 # f.stat_simple_plot(acq_rate,'growth_potential_mean_log_norm')
 # f.stat_simple_plot(acq_rate,'growth_potential_mean_linear_norm')
 # f.stat_histogram(pos_rew, '% positive reviews')
 # f.stat_simple_plot(eng_rat,'% Engagement Score_linear_norm')
+
+# ────── Result creation and saving ────────────────────────────────────────────────────
+scorring_merged.to_excel('data/results/scorring_merged_WINNERS.xlsx')
+f.time_helper('Done!')
+
+
+
 
 
 
