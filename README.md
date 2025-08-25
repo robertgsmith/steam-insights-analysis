@@ -50,7 +50,7 @@ steam-insights-analysis/ <br>
 - - - tags.csv - csv file of game tags (more detailed info below)
 
 
-# Python code
+## Python code
 File name: main.py <br>
 File content: main python script to run the full analysis project from start to finish and going through all the sections as functions in the "Functions.py" file <br>
 Requirements: Python v3.12.0 <br>
@@ -91,3 +91,10 @@ File name: tags.csv <br>
 File content: csv file of game tags (more detailed info below) <br>
 File columns: app_id (integer), tag (string) <br>
 
+
+## Further important commentary and explanations
+### Assumptions
+- Average owners: To use the most unbiased data, the average of the estimated owner range was used
+- Active users of the previous day is assumed to be the average active users over the last month used for calculating engagement rate
+- Demos are removed: As 'demos' are games that are meant for marketing purposes and not revenue generating products, they are removed to eliminate cases where it would artificially inflate game count for publishers.
+- Publishers with more than 20 games: publishers are filtered to have more than 20 games to avoid small publishers
