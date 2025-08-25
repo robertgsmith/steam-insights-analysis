@@ -15,6 +15,7 @@ import json
 import re
 import sys
 import csv
+import os
 from transformers import pipeline
 from tqdm import tqdm
 import time as t
@@ -182,7 +183,7 @@ scorring_merged = scorring_merged.sort_values(by="Final Score", ascending=False)
 # f.stat_simple_plot(eng_rat,'% Engagement Score_linear_norm')
 
 # ────── Result creation and saving ────────────────────────────────────────────────────
-scorring_merged.to_excel('steam-insights-analysis/data/results/scorring_merged_WINNERS.xlsx')
+scorring_merged.to_excel('scorring_merged_WINNERS.xlsx')
 f.time_helper('Done!')
 
 
