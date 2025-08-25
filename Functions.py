@@ -12,6 +12,8 @@ import time as t
 
 # ────── Shared variables ────────────────────────────────────────────────────
 start = None
+# Clean languages: remove HTML, normalize list, detect full-audio ones ---
+TAG_RE = re.compile(r"<.*?>")
 
 # ────── Statistical functions ────────────────────────────────────────────────────
 def stat_histogram(df,column):
@@ -45,7 +47,7 @@ def parse_price(j):
         return {"price_final_cents": None,"price_initial_cents": None,"currency": None,"discount_percent": None,
             "price_final": None,"price_initial": None,"price_final_formatted": None,}
 
-def clean_languages(raw,TAG_RE):
+def clean_languages(raw):
     if pd.isna(raw):
         return [], []
     # Remove <br> and other tags, keep the "*" that indicates full audio support
