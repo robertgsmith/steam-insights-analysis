@@ -14,122 +14,116 @@ import matplotlib.pyplot as plt
 
 f.start = t.time()
 
-# # ────── define all the original file's paths ────────────────────────────────────────────────────
-# review = r'/Users/andriideviatkin/PycharmProjects/delivery accuracy/Advanced Analytics/Data/reviews.csv'
-# st_i = r'/Users/andriideviatkin/PycharmProjects/delivery accuracy/Advanced Analytics/Data/steamspy_insights.csv'
-# genres = r'/Users/andriideviatkin/PycharmProjects/delivery accuracy/Advanced Analytics/Data/genres.csv'
-# games = r'/Users/andriideviatkin/PycharmProjects/delivery accuracy/Advanced Analytics/Data/games.csv'
-# tags = r'/Users/andriideviatkin/PycharmProjects/delivery accuracy/Advanced Analytics/Data/tags.csv'
-# category = r'/Users/andriideviatkin/PycharmProjects/delivery accuracy/Advanced Analytics/Data/categories.csv'
-# f.time_helper('File Paths defined')
-#
-# # ────── Read all files, avoiding brocken values ────────────────────────────────────────────────────
-# df_review = pd.read_csv(review,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
-# df_st_i = pd.read_csv(st_i,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
-# df_genres = pd.read_csv(genres,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
-# df_tags = pd.read_csv(tags,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
-# df_games = pd.read_csv(games,engine="python",sep=",",quotechar='"',escapechar="\\",doublequote=False)
-# df_category = pd.read_csv(category,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
-# #df_descriptions = pd.read_csv(descriptions,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
-# f.time_helper('Files were read.')
-#
-# # ────── Processing the 'games' file, handling the jason type ────────────────────────────────────────────────────
-# price_expanded = df_games["price_overview"].apply(f.parse_price).apply(pd.Series)
-# df_games = pd.concat([df_games.drop(columns=["price_overview"]), price_expanded], axis=1)
-#
-# # Clean languages: remove HTML, normalize list, detect full-audio ones ---
-# TAG_RE = re.compile(r"<.*?>")
-#
-# langs_parsed = df_games["languages"].apply(f.clean_languages(TAG_RE))
-# df_games["languages_clean"] = langs_parsed.apply(lambda t: t[0])         # list of languages
-# df_games["languages_full_audio"] = langs_parsed.apply(lambda t: t[1])    # subset with full audio
-# df_games = df_games.drop(columns=["languages"])  # optional: keep only the cleaned columns
-#
-# # Helpful type fixes ---
-# df_games["is_free"] = df_games["is_free"].astype(int).astype(bool)
-# df_games["release_date"] = pd.to_datetime(df_games["release_date"], errors="coerce")
-#
-# f.time_helper('"Games" file was processed')
-#
-#
-# # ────── Processing reviews & creating Semantic Scores ────────────────────────────────────────────────────
-# rewiews_filtered = df_review.loc[df_review['reviews'] != 'N', ['app_id', 'reviews']]
-# f.time_helper('Reviews slice was made')
-#
-# # Load sentiment model. ensure the model that can handle several languages
-# sentiment = pipeline("sentiment-analysis",model="distilbert-base-uncased-finetuned-sst-2-english")
-# f.time_helper('Sentiment model - loaded')
-#
-# # Apply sentiment scoring in batches
-# reviews = rewiews_filtered["reviews"].astype(str).tolist()
-# scores, labels = [], []
-# f.time_helper('Sentiment model - applied')
-#
-# batch_size = 64
-# # using the tqdm library to track the computation completion as the AI-based classifier is very time consuming to apply for thousands of rows
-# for i in tqdm(range(0, len(reviews), batch_size), desc="Scoring"):
-#     batch = reviews[i:i+batch_size]
-#     results = sentiment(batch, truncation=True)
-#     for r in results:
-#         label = r["label"].lower()   # "positive" or "negative"
-#         score = r["score"] if label == "positive" else -r["score"]
-#         labels.append(label)
-#         scores.append(score)
-#
-# # Add results to DataFrame
-# rewiews_filtered["review_label"] = labels
-# rewiews_filtered["review_score"] = scores
-#
-# df_review = df_review.merge(rewiews_filtered, on= 'app_id', how = 'left')
-# df_review.to_excel('Semantic_score_reviews.xlsx', index=False)
-# #df_review = pd.read_excel('/Users/andriideviatkin/PycharmProjects/delivery accuracy/Advanced Analytics/Code/Semantic_score_reviews.xlsx')
-#
-# # ────── Building the main data file and renaming the columns ────────────────────────────────────────────────────
-# final_data = (df_games[["app_id", "release_date", "type", "currency", "price_final"]]
-#     .merge(df_st_i[["app_id", "publisher", "owners_range", "concurrent_users_yesterday"]],on="app_id",how="left"))
-#
-# final_data = (final_data.merge(df_review[['app_id', 'review_score_x',
-#         'positive','total', 'metacritic_score', 'recommendations','review_score_y']], on = 'app_id', how = 'left'))
-# final_data = final_data.rename(columns={'release_date': 'date of release', 'review_score_x': 'review_score',
-#     'recommendations':'num of recommendations', 'review_score_y':'semantic review score', 'price_final':'price in national currency',
-#     'currency':'national currency', 'concurrent_users_yesterday':'current users at 30 of October 2024'})
-#
+# ────── define all the original file's paths ────────────────────────────────────────────────────
+review = r'/Users/andriideviatkin/PycharmProjects/delivery accuracy/Advanced Analytics/Data/reviews.csv'
+st_i = r'/Users/andriideviatkin/PycharmProjects/delivery accuracy/Advanced Analytics/Data/steamspy_insights.csv'
+genres = r'/Users/andriideviatkin/PycharmProjects/delivery accuracy/Advanced Analytics/Data/genres.csv'
+games = r'/Users/andriideviatkin/PycharmProjects/delivery accuracy/Advanced Analytics/Data/games.csv'
+tags = r'/Users/andriideviatkin/PycharmProjects/delivery accuracy/Advanced Analytics/Data/tags.csv'
+category = r'/Users/andriideviatkin/PycharmProjects/delivery accuracy/Advanced Analytics/Data/categories.csv'
+f.time_helper('File Paths defined')
+
+# ────── Read all files, avoiding brocken values ────────────────────────────────────────────────────
+df_review = pd.read_csv(review,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
+df_st_i = pd.read_csv(st_i,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
+df_genres = pd.read_csv(genres,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
+df_tags = pd.read_csv(tags,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
+df_games = pd.read_csv(games,engine="python",sep=",",quotechar='"',escapechar="\\",doublequote=False)
+df_category = pd.read_csv(category,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
+f.time_helper('Files were read.')
+
+# ────── Processing the 'games' file, handling the jason type ────────────────────────────────────────────────────
+price_expanded = df_games["price_overview"].apply(f.parse_price).apply(pd.Series)
+df_games = pd.concat([df_games.drop(columns=["price_overview"]), price_expanded], axis=1)
+
+langs_parsed = df_games["languages"].apply(f.clean_languages)
+df_games["languages_clean"] = langs_parsed.apply(lambda t: t[0])         # list of languages
+df_games["languages_full_audio"] = langs_parsed.apply(lambda t: t[1])    # subset with full audio
+df_games = df_games.drop(columns=["languages"])  # optional: keep only the cleaned columns
+
+# Helpful type fixes ---
+df_games["is_free"] = df_games["is_free"].astype(int).astype(bool)
+df_games["release_date"] = pd.to_datetime(df_games["release_date"], errors="coerce")
+
+f.time_helper('"Games" file was processed')
+
+
+# ────── Processing reviews & creating Semantic Scores ────────────────────────────────────────────────────
+rewiews_filtered = df_review.loc[df_review['reviews'] != 'N', ['app_id', 'reviews']]
+f.time_helper('Reviews slice was made')
+
+# Load sentiment model. ensure the model that can handle several languages
+sentiment = pipeline("sentiment-analysis",model="distilbert-base-uncased-finetuned-sst-2-english")
+f.time_helper('Sentiment model - loaded')
+
+# Apply sentiment scoring in batches
+reviews = rewiews_filtered["reviews"].astype(str).tolist()
+scores, labels = [], []
+f.time_helper('Sentiment model - applied')
+
+batch_size = 64
+# using the tqdm library to track the computation completion as the AI-based classifier is very time consuming to apply for thousands of rows
+for i in tqdm(range(0, len(reviews), batch_size), desc="Scoring"):
+    batch = reviews[i:i+batch_size]
+    results = sentiment(batch, truncation=True)
+    for r in results:
+        label = r["label"].lower()   # "positive" or "negative"
+        score = r["score"] if label == "positive" else -r["score"]
+        labels.append(label)
+        scores.append(score)
+
+# Add results to DataFrame
+rewiews_filtered["review_label"] = labels
+rewiews_filtered["review_score"] = scores
+
+df_review = df_review.merge(rewiews_filtered, on= 'app_id', how = 'left')
+df_review.to_excel('Semantic_score_reviews.xlsx', index=False)
+#df_review = pd.read_excel('/Users/andriideviatkin/PycharmProjects/delivery accuracy/Advanced Analytics/Code/Semantic_score_reviews.xlsx')
+
+# ────── Building the main data file and renaming the columns ────────────────────────────────────────────────────
+final_data = (df_games[["app_id", "release_date", "type", "currency", "price_final"]]
+    .merge(df_st_i[["app_id", "publisher", "owners_range", "concurrent_users_yesterday"]],on="app_id",how="left"))
+
+final_data = (final_data.merge(df_review[['app_id', 'review_score_x',
+        'positive','total', 'metacritic_score', 'recommendations','review_score_y']], on = 'app_id', how = 'left'))
+final_data = final_data.rename(columns={'release_date': 'date of release', 'review_score_x': 'review_score',
+    'recommendations':'num of recommendations', 'review_score_y':'semantic review score', 'price_final':'price in national currency',
+    'currency':'national currency', 'concurrent_users_yesterday':'current users at 30 of October 2024'})
+
 # final_data.to_excel('final_data_4.xlsx',index = False)
 # final_data = pd.read_excel('final_data_4.xlsx')
-#
-#
-# # ────── Separating the Owners_range into min and max columns and adding average ────────────────────────────────────────────────────
-# s = final_data["owners_range"].astype(str)
-# # Extract two numeric groups around `..` (any spacing)
-# mm = s.str.extract(r'(?P<min_owner>[\d,]+)\s*\.\.\s*(?P<max_owner>[\d,]+)')
-# # Remove commas, convert to numbers; invalid parses become NaN
-# mm = mm.replace(",", "", regex=True).apply(pd.to_numeric, errors="coerce")
-# # Assign back using nullable integers (keeps NaN)
-# final_data[["min_owner", "max_owner"]] = mm.astype("Int64")
-# final_data['average_owner'] = (final_data['min_owner'] + final_data['max_owner'])/2
-#
-#
-# # ────── Create % engagement score ────────────────────────────────────────────────────
-# final_data = final_data.replace("N", None)
-# final_data['% Engagement Score'] = final_data['current users at 30 of October 2024']/final_data['average_owner']
-#
-# # ────── Create % positive reviews ────────────────────────────────────────────────────
-# final_data['positive'] = pd.to_numeric(final_data['positive'], errors='coerce')
-# final_data['total'] = pd.to_numeric(final_data['total'],    errors='coerce')
-# final_data['% positive reviews'] = np.where(final_data['total'].gt(0),(final_data['positive'] / final_data['total']),np.nan)
-#
-# # ────── convert all prices to EUR. Exchange rates are taken as of: 31.10.2024 ────────────────────────────────────────────────────
-# exchange_rates = {"EUR":1.0,"MXN":21.8237,"RUB":105.9929,"USD":1.0884,"CAD":1.5165,"BRL":6.3036,"SAR":4.0877,"GBP":0.844,"PEN":4.1005,"ILS":4.073,"KRW":1495.4201,"UAH":44.8361,"INR":91.5275,"PHP":63.4227,"IDR":17115.0813,"PLN":4.3528,"COP":4802.2869,"AUD":1.6547,"NZD":1.8229,"SGD":1.4363,"THB":36.8184,"CNY":7.7502,"KWD":0.3337,"KZT":531.1581,"MYR":4.7623,"TWD":34.6604,"JPY":165.3856,"AED":3.9943,"HKD":8.4621,"VND":27514.0,"NOK":11.9697}
-# final_data['price in national currency'] = pd.to_numeric(final_data['price in national currency'], errors='coerce')
-# rates = final_data['national currency'].map(exchange_rates)
-# final_data['Price(eur)'] = final_data['price in national currency'] / rates
-#
+
+
+# ────── Separating the Owners_range into min and max columns and adding average ────────────────────────────────────────────────────
+s = final_data["owners_range"].astype(str)
+# Extract two numeric groups around `..` (any spacing)
+mm = s.str.extract(r'(?P<min_owner>[\d,]+)\s*\.\.\s*(?P<max_owner>[\d,]+)')
+# Remove commas, convert to numbers; invalid parses become NaN
+mm = mm.replace(",", "", regex=True).apply(pd.to_numeric, errors="coerce")
+# Assign back using nullable integers (keeps NaN)
+final_data[["min_owner", "max_owner"]] = mm.astype("Int64")
+final_data['average_owner'] = (final_data['min_owner'] + final_data['max_owner'])/2
+
+
+# ────── Create % engagement score ────────────────────────────────────────────────────
+final_data = final_data.replace("N", None)
+final_data['% Engagement Score'] = final_data['current users at 30 of October 2024']/final_data['average_owner']
+
+# ────── Create % positive reviews ────────────────────────────────────────────────────
+final_data['positive'] = pd.to_numeric(final_data['positive'], errors='coerce')
+final_data['total'] = pd.to_numeric(final_data['total'],    errors='coerce')
+final_data['% positive reviews'] = np.where(final_data['total'].gt(0),(final_data['positive'] / final_data['total']),np.nan)
+
+# ────── convert all prices to EUR. Exchange rates are taken as of: 31.10.2024 ────────────────────────────────────────────────────
+exchange_rates = {"EUR":1.0,"MXN":21.8237,"RUB":105.9929,"USD":1.0884,"CAD":1.5165,"BRL":6.3036,"SAR":4.0877,"GBP":0.844,"PEN":4.1005,"ILS":4.073,"KRW":1495.4201,"UAH":44.8361,"INR":91.5275,"PHP":63.4227,"IDR":17115.0813,"PLN":4.3528,"COP":4802.2869,"AUD":1.6547,"NZD":1.8229,"SGD":1.4363,"THB":36.8184,"CNY":7.7502,"KWD":0.3337,"KZT":531.1581,"MYR":4.7623,"TWD":34.6604,"JPY":165.3856,"AED":3.9943,"HKD":8.4621,"VND":27514.0,"NOK":11.9697}
+final_data['price in national currency'] = pd.to_numeric(final_data['price in national currency'], errors='coerce')
+rates = final_data['national currency'].map(exchange_rates)
+final_data['Price(eur)'] = final_data['price in national currency'] / rates
+
 # # ────── remove all spaces in publisher names to increase data accuract for groupping ────────────────────────────────────────────────────
 # final_data['publisher_technical'] = (final_data['publisher'].str.strip().str.lower().str.replace(" ", "", regex=False))
 # final_data.to_excel('final_data_6.xlsx', index= False)
 # sys.exit()
-
-#hey
 
 
 # ────── KPI collection ────────────────────────────────────────────────────
