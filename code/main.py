@@ -25,21 +25,21 @@ import matplotlib.pyplot as plt
 f.start = t.time()
 
 # ────── define all the original file's paths ────────────────────────────────────────────────────
-review = r'data/raw/reviews.csv'
-st_i = r'data/raw/steamspy_insights.csv'
-genres = r'data/raw/genres.csv'
-games = r'data/raw/games.csv'
-tags = r'data/raw/tags.csv'
-category = r'data/raw/categories.csv'
+git_review = r'data/raw/reviews.csv'
+git_st_i = r'data/raw/steamspy_insights.csv'
+git_genres = r'data/raw/genres.csv'
+git_games = r'data/raw/games.csv'
+git_tags = r'data/raw/tags.csv'
+git_category = r'data/raw/categories.csv'
 f.time_helper('File Paths defined')
 
 # ────── Read all files, avoiding brocken values ────────────────────────────────────────────────────
-df_review = pd.read_csv(review,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
-df_st_i = pd.read_csv(st_i,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
-df_genres = pd.read_csv(genres,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
-df_tags = pd.read_csv(tags,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
-df_games = pd.read_csv(games,engine="python",sep=",",quotechar='"',escapechar="\\",doublequote=False)
-df_category = pd.read_csv(category,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
+df_review = pd.read_csv(git_review,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
+df_st_i = pd.read_csv(git_st_i,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
+df_genres = pd.read_csv(git_genres,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
+df_tags = pd.read_csv(git_tags,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
+df_games = pd.read_csv(git_games,engine="python",sep=",",quotechar='"',escapechar="\\",doublequote=False)
+df_category = pd.read_csv(git_category,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
 f.time_helper('Files were read.')
 
 # ────── Processing the 'games' file, handling the jason type ────────────────────────────────────────────────────
