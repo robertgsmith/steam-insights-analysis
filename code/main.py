@@ -183,7 +183,7 @@ scorring_merged = scorring_merged.sort_values(by="Final Score", ascending=False)
 # f.stat_simple_plot(eng_rat,'% Engagement Score_linear_norm')
 
 # ────── Result creation and saving ────────────────────────────────────────────────────
-scorring_merged.to_excel('scorring_merged_WINNERS.xlsx')
+scorring_merged.to_excel('scorring_merged_OUTPUT.xlsx')
 f.time_helper('Done!')
 
 
