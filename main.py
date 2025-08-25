@@ -41,7 +41,7 @@ df_games["languages_clean"] = langs_parsed.apply(lambda t: t[0])         # list 
 df_games["languages_full_audio"] = langs_parsed.apply(lambda t: t[1])    # subset with full audio
 df_games = df_games.drop(columns=["languages"])  # optional: keep only the cleaned columns
 
-# Helpful type fixes ---
+# Fix some datatypes
 df_games["is_free"] = df_games["is_free"].astype(int).astype(bool)
 df_games["release_date"] = pd.to_datetime(df_games["release_date"], errors="coerce")
 
@@ -75,10 +75,7 @@ for i in tqdm(range(0, len(reviews), batch_size), desc="Scoring"):
 # Add results to DataFrame
 rewiews_filtered["review_label"] = labels
 rewiews_filtered["review_score"] = scores
-
 df_review = df_review.merge(rewiews_filtered, on= 'app_id', how = 'left')
-df_review.to_excel('Semantic_score_reviews.xlsx', index=False)
-#df_review = pd.read_excel('/Users/andriideviatkin/PycharmProjects/delivery accuracy/Advanced Analytics/Code/Semantic_score_reviews.xlsx')
 
 # ────── Building the main data file and renaming the columns ────────────────────────────────────────────────────
 final_data = (df_games[["app_id", "release_date", "type", "currency", "price_final"]]
@@ -90,6 +87,7 @@ final_data = final_data.rename(columns={'release_date': 'date of release', 'revi
     'recommendations':'num of recommendations', 'review_score_y':'semantic review score', 'price_final':'price in national currency',
     'currency':'national currency', 'concurrent_users_yesterday':'current users at 30 of October 2024'})
 
+# Milestone saving
 # final_data.to_excel('final_data_4.xlsx',index = False)
 # final_data = pd.read_excel('final_data_4.xlsx')
 
@@ -120,15 +118,14 @@ final_data['price in national currency'] = pd.to_numeric(final_data['price in na
 rates = final_data['national currency'].map(exchange_rates)
 final_data['Price(eur)'] = final_data['price in national currency'] / rates
 
-# # ────── remove all spaces in publisher names to increase data accuract for groupping ────────────────────────────────────────────────────
-# final_data['publisher_technical'] = (final_data['publisher'].str.strip().str.lower().str.replace(" ", "", regex=False))
-# final_data.to_excel('final_data_6.xlsx', index= False)
-# sys.exit()
+# ────── remove all spaces in publisher names to increase data accuract for groupping ────────────────────────────────────────────────────
+final_data['publisher_technical'] = (final_data['publisher'].str.strip().str.lower().str.replace(" ", "", regex=False))
 
+# Milestone saving
+# final_data.to_excel('final_data_6.xlsx', index= False)
+# final_data = pd.read_excel('final_data_6.xlsx')
 
 # ────── KPI collection ────────────────────────────────────────────────────
-final_data = pd.read_excel('final_data_6.xlsx')
-
 eng_rat = f.kpi_engagement_ratio(final_data)
 pos_rew = f.kpi_positive_review_share(final_data)
 acq_rate = f.kpi_owner_acquisition_rate(final_data)
@@ -138,30 +135,22 @@ monet_eff = f.kpi_monitisation_efficiency(final_data)
 other_quality['semantic_sentiment_index_log_norm'] = other_quality['semantic_sentiment_index_log_norm'].replace(0, 0.5).fillna(0.5)
 
 # ────── All KPIs column names ────────────────────────────────────────────────────
+print('────── All KPIs column names ────────────────────────────────────────────────────')
 print(f'monet_eff: {list(monet_eff)}')
 print(f'other_quality: {list(other_quality)}')
 print(f'acq_rate: {list(acq_rate)}')
 print(f'pos_rew: {list(pos_rew)}')
-print(f'eng_rat:  {list(eng_rat)}')
+print(f'eng_rat:  {list(eng_rat)}\n')
 
 # ────── KPI merger ────────────────────────────────────────────────────
 merger_key = 'publisher_technical'
-scorring_merged = pd.merge(pos_rew[['publisher_technical','publisher', '% positive reviews']],
+scorring_merged = pd.merge(pos_rew[['publisher_technical','publisher','app_id', '% positive reviews']],
     other_quality[['publisher_technical','recommendation_index_log_norm','semantic_sentiment_index_log_norm','review_score_index_linear_norm']],
     on= merger_key, how="left")
 scorring_merged = pd.merge(scorring_merged,acq_rate[['publisher_technical', 'growth_potential_mean_log_norm']],on=merger_key, how="left")
 scorring_merged = pd.merge(scorring_merged,monet_eff[['publisher_technical','monetizing_efficiency_log_norm']],on=merger_key, how="left")
 scorring_merged = pd.merge(scorring_merged,eng_rat[['publisher_technical', '% Engagement Score_linear_norm']],on=merger_key, how="left")
-
-
-f.time_helper('all ready')
-
-# ────── Statistical Check of data ────────────────────────────────────────────────────
-print(f'scorring_merged:  {list(scorring_merged)}')
-# for i in ['monetizing_efficiency_log_norm', 'recommendation_index_log_norm', 'semantic_sentiment_index_log_norm', 'review_score_index_linear_norm', 'growth_potential_mean_log_norm', '% positive reviews', '% Engagement Score_linear_norm']:
-#     f.stat_simple_plot(scorring_merged,i)
-#     f.stat_histogram(scorring_merged,i)
-
+f.time_helper('KPIs meerged')
 
 # ────── KPI types creation ────────────────────────────────────────────────────
 scorring_merged['Quality'] = (scorring_merged['% positive reviews'] + scorring_merged['review_score_index_linear_norm']
@@ -172,18 +161,20 @@ scorring_merged['Engagement'] = scorring_merged['% Engagement Score_linear_norm'
 
 # ────── Weights, final score compilation ────────────────────────────────────────────────────
 weights = {'Quality': 0.4, 'Revenue': 0.3, 'Growth': 0.2, 'Engagement':0.1}
-
 scorring_merged['Final Score'] = scorring_merged[list(weights.keys())].dot(list(weights.values()))
 scorring_merged = scorring_merged.sort_values(by="Final Score", ascending=False).reset_index(drop=True)
 
-scorring_merged.to_excel('scorring_merged_WINNERS.xlsx')
-f.time_helper('Done!')
-
-
 # ────── Performance of final checks ────────────────────────────────────────────────────
-#f.stat_histogram(acq_rate,'growth_potential_mean_log_norm')
-# f.stat_simple_plot(acq_rate,'growth_potential_mean_log_norm')
-# f.stat_simple_plot(acq_rate,'growth_potential_mean_linear_norm')
-# f.stat_histogram(pos_rew, '% positive reviews')
-# f.stat_simple_plot(eng_rat,'% Engagement Score_linear_norm')
+print('────── Final output Table Structure ────────────────────────────────────────────────────')
+print(f'scorring_merged:  {list(scorring_merged)}')
+# for i in ['monetizing_efficiency_log_norm', 'recommendation_index_log_norm', 'semantic_sentiment_index_log_norm', 'review_score_index_linear_norm', 'growth_potential_mean_log_norm', '% positive reviews', '% Engagement Score_linear_norm']:
+#     f.stat_simple_plot(scorring_merged,i)
+#     f.stat_histogram(scorring_merged,i)
+
+# ────── Saving the final output ────────────────────────────────────────────────────
+scorring_merged.to_excel('scorring_merged_WINNERS.xlsx')
+f.time_helper('────── Done! ──────')
+
+
+
 

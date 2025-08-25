@@ -111,32 +111,29 @@ def add_log_minmax(df, col, new_col=None):
 
 # ────── KPI-related Functions ────────────────────────────────────────────────────
 def kpi_owner_acquisition_rate(df):
-    # 1) Keep only needed columns
+    # Keep only needed columns
     df = df[['type', 'publisher_technical', 'date of release', 'average_owner']].copy()
-    # 2) Filter only games
+    # Filter only games
     df = df[df['type'].astype(str).str.strip().str.lower() == 'game']
-    # 3) Convert columns
+    # Convert columns
     df['average_owner'] = pd.to_numeric(df['average_owner'], errors='coerce')
     df['date of release'] = pd.to_datetime(df['date of release'], errors='coerce')
     # Remove bad rows
     df = df[df['average_owner'].notna() & df['date of release'].notna()].copy()
-    # 4) Calculate days on market until 2024-10-31
+    # Calculate days on market until 2024-10-31
     end_date = pd.to_datetime("2024-10-31")
     df['days_on_market'] = (end_date - df['date of release']).dt.days
     # Remove future releases or invalid (negative days)
     df = df[df['days_on_market'] > 0]
-    # 5) Compute growth potential = owners / days on market
+    # Compute growth potential = owners / days on market
     df['growth_potential'] = df['average_owner'] / df['days_on_market']
 
-    # 6) Group by publisher
+    # Group by publisher
     publisher_df = (df.groupby('publisher_technical').agg(growth_potential_mean=('growth_potential', 'mean'),
               n_titles=('growth_potential', 'size')).reset_index())
 
-    # ✅ 7) Keep only publishers with at least 20 games
+    # Keep only publishers with at least 20 games
     publisher_df = publisher_df[publisher_df['n_titles'] >= 20]
-
-    # rename the n_titles for cobsistency for future merger
-    #publisher_df = publisher_df.rename(columns = {'n_titles': 'app_id'})
 
     # Sort after filtering
     publisher_df = publisher_df.sort_values('growth_potential_mean', ascending=False)
@@ -154,22 +151,21 @@ def kpi_positive_review_share(final_data):
         '% positive reviews': 'mean',
         'app_id': 'count',
         'publisher': lambda x: x.value_counts().idxmax()})
-    # df.to_excel('df.xlsx')
     # take only the publishers with 20+ games
     df = df[df['app_id'] >= 20]
     return df
 
 def kpi_monitisation_efficiency(df):
     df = df[["type", "publisher_technical", "average_owner","app_id","Price(eur)"]]
-    # 3) Filter games and clean data
+    # Filter games and clean data
     df = df[df["type"].astype(str).str.lower().eq("game")]
     df = df.dropna(subset=["publisher_technical", "average_owner", "Price(eur)"])
     df = df[(df["average_owner"] > 0) & (df["Price(eur)"] > 0)]
 
-    # 4) Compute KPI per game
+    # Compute KPI per game
     df["monetizing_efficiency"] = df["average_owner"] * df["Price(eur)"]
 
-    # 5) Aggregate KPI per publisher (SUM) and sort
+    # Aggregate KPI per publisher (SUM) and sort
     top = df.groupby('publisher_technical', as_index=False).agg({'monetizing_efficiency': 'mean', 'app_id': 'count'})
     top = top[top['app_id'] >= 20]
 
@@ -177,6 +173,7 @@ def kpi_monitisation_efficiency(df):
     top = add_minmax(top, 'monetizing_efficiency')
     top = add_log_minmax(top, 'monetizing_efficiency')
 
+    # middle process tests
     # stat_simple_plot(top, 'monetizing_efficiency_linear_norm')
     # stat_simple_plot(top, 'monetizing_efficiency_log_norm')
 
@@ -251,6 +248,7 @@ def kpi_three_other_quality_kpis(df):
     add_log_minmax(publisher_kpis_norm, 'semantic_sentiment_index')
     add_log_minmax(publisher_kpis_norm, 'recommendation_index')
 
+    # middle process tests
     # stat_simple_plot(publisher_kpis_norm,'review_score_index_linear_norm')
     # stat_simple_plot(publisher_kpis_norm, 'semantic_sentiment_index_log_norm')
     # stat_simple_plot(publisher_kpis_norm, 'recommendation_index_log_norm')
