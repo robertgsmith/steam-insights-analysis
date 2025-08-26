@@ -98,3 +98,60 @@ File columns: app_id (integer), tag (string) <br>
 - Active users of the previous day is assumed to be the average active users over the last month used for calculating engagement rate
 - Demos are removed: As 'demos' are games that are meant for marketing purposes and not revenue generating products, they are removed to eliminate cases where it would artificially inflate game count for publishers.
 - Publishers with more than 20 games: publishers are filtered to have more than 20 games to avoid small publishers
+
+
+## KPI
+- Monetising ffficiency (in euros) → price * avg_owner
+  - Total revenue generated from sales
+- Owner acquisition Rate → awg_owner / days_since_release
+  - Average new owner added per day
+- Engagement ratio → yesterday_user / avg_owner
+  - level of user involvement
+- Positive review share → amount_pos_reviews / total
+  - Share of positive reviews review score​
+- Normalised review score
+  - AVG rating provided by users​
+- Semantic sentiment score
+  - LLM analysis of review text to capture tone beyond ratings​
+- Recommendation ratio → num_recomendations / avg_owners
+  - Share of users who recommended the game​
+ 
+## KPI categories
+- Quality 
+  - Positive review share
+  - Normalised review score 
+  - Semantic sentiment score 
+  - Recommendation ratio
+- Revenue 
+  - Monetising efficiency (in euros)
+- Growth 
+  - Owner acquisition rate
+- Engagement
+  - Engagement ratio <br>
+
+4 key attributes do not share equal influence when producing the portfolio of most attractive publishers. Hence, further steps were taken and categories are weighted based on: 
+- 40% - Quality
+- 30% - Revenue
+- 20% - Growth
+- 10% - Engagement <br> <br>
+
+
+Reasons behind the unequal distribution of weights assigned: <br>
+Quality - 40%  <br>
+Definition: We define quality as the combination of game design, game experience and user to user promotion. 
+We believe that a long term sustained success is heavily dependent on the players’ satisfaction, reviews and the recommendation ratio. A high quality game would not only attract organic growth through recommendations of like-minded users but also ensure sustained success through the continuous enjoyment such games provide.  <br> <br>
+Revenue - 30%  <br>
+Definition: The financial success of the games.  <br>
+As a profit-maximising company, we acknowledge that the revenue generated is definitely a significant attribute. However, we assigned lesser weights to this as compared to the quality as short-term monetisation without ensuring player satisfaction may be unsustainable. By keeping revenue at 25%, we ensure profitability is recognised, but not at the expense of long-term community and reputation of the game, balancing sustainable revenue and not just early cash flows. <br> <br>
+Growth - 20%  <br>
+Definition: Growth indicates the market traction and adoption speed, critical in competitive and ever-evolving gaming markets.  <br>
+At 20%, growth gets significant importance, acknowledging the ability to scale a player base is key, while being able to tap into the growing trends in the industry.  <br>
+However, we growth is ranked the third of importance as growth without revenue or quality may simply reflect temporary hype which likely won’t be sustained.  <br> <br>
+Engagement - 10%  <br>
+Definition: Active players who return daily or interact with the game regularly.  <br>
+We believe that active players build the backbone of long-term revenue and streams (such as in-app purchases, advertisements, etc.). This realises that it is insufficient for players to purchase the game and there is a need for the continuous engagement with it, maintaining a loyal and sticky player base. Key for long-term retention and monetisation. We note that this is just an indicator and does not always translate to revenue or shareholder value.  <br> <br>
+
+
+
+
+
