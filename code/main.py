@@ -1,0 +1,217 @@
+'''
+Filename: main.py
+Description: Run the whole analysis functions used in the 'main.py' file
+Requirements: Python v3.12.0
+Pip installed libraries: pandas, numpy, matplotlib, transformers, tqdm, pipline, torch
+'''
+
+
+# ────── Import all neccessary libraries ────────────────────────────────────────────────────
+import pandas as pd
+from functools import reduce
+import json
+import re
+import sys
+import csv
+import os
+from transformers import pipeline
+from tqdm import tqdm
+import time as t
+import numpy as np
+import Functions as f
+import matplotlib.pyplot as plt
+from pathlib import Path
+
+f.start = t.time()
+
+# ────── Resolve repo root: .../steam-insights-analysis ────────────────────────────────────────────────────
+HERE = Path(__file__).resolve()                   # .../steam-insights-analysis/code/main.py
+REPO_ROOT = HERE.parent.parent                    # go up from /code to repo root
+DATA_RAW = REPO_ROOT / "data" / "raw"
+
+# ────── File Paths ────────────────────────────────────────────────────
+p_reviews = DATA_RAW / "reviews.csv"
+p_steamspy = DATA_RAW / "steamspy_insights.csv"
+p_genres = DATA_RAW / "genres.csv"
+p_games = DATA_RAW / "games.csv"
+p_tags = DATA_RAW / "tags.csv"
+p_category = DATA_RAW / "categories.csv"
+
+f.time_helper('File Paths defined')
+
+# ────── Read all files, avoiding brocken values ────────────────────────────────────────────────────
+df_review = pd.read_csv(p_reviews,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
+df_st_i = pd.read_csv(p_steamspy,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
+df_genres = pd.read_csv(p_genres,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
+df_tags = pd.read_csv(p_tags,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
+df_games = pd.read_csv(p_games,engine="python",sep=",",quotechar='"',escapechar="\\",doublequote=False)
+df_category = pd.read_csv(p_category,sep=",",header=0,quotechar='"',escapechar="\\",na_values=["\\N"],engine="python",on_bad_lines="skip")
+f.time_helper('Files were read.')
+
+# ────── Processing the 'games' file, handling the jason type ────────────────────────────────────────────────────
+price_expanded = df_games["price_overview"].apply(f.parse_price).apply(pd.Series)
+df_games = pd.concat([df_games.drop(columns=["price_overview"]), price_expanded], axis=1)
+
+langs_parsed = df_games["languages"].apply(f.clean_languages)
+df_games["languages_clean"] = langs_parsed.apply(lambda t: t[0])         # list of languages
+df_games["languages_full_audio"] = langs_parsed.apply(lambda t: t[1])    # subset with full audio
+df_games = df_games.drop(columns=["languages"])  # optional: keep only the cleaned columns
+
+# Fix some datatypes
+df_games["is_free"] = df_games["is_free"].astype(int).astype(bool)
+df_games["release_date"] = pd.to_datetime(df_games["release_date"], errors="coerce")
+
+f.time_helper('"Games" file was processed')
+
+
+# ────── Processing reviews & creating Semantic Scores ────────────────────────────────────────────────────
+rewiews_filtered = df_review.loc[df_review['reviews'] != 'N', ['app_id', 'reviews']]
+f.time_helper('Reviews slice was made')
+
+# Load sentiment model. ensure the model that can handle several languages
+sentiment = pipeline("sentiment-analysis",model="distilbert-base-uncased-finetuned-sst-2-english")
+f.time_helper('Sentiment model - loaded')
+
+# Apply sentiment scoring in batches
+reviews = rewiews_filtered["reviews"].astype(str).tolist()
+scores, labels = [], []
+f.time_helper('Sentiment model - applied')
+
+batch_size = 64
+# using the tqdm library to track the computation completion as the AI-based classifier is very time consuming to apply for thousands of rows
+for i in tqdm(range(0, len(reviews), batch_size), desc="Scoring"):
+    batch = reviews[i:i+batch_size]
+    results = sentiment(batch, truncation=True)
+    for r in results:
+        label = r["label"].lower()   # "positive" or "negative"
+        score = r["score"] if label == "positive" else -r["score"]
+        labels.append(label)
+        scores.append(score)
+
+# Add results to DataFrame
+rewiews_filtered["review_label"] = labels
+rewiews_filtered["review_score"] = scores
+df_review = df_review.merge(rewiews_filtered, on= 'app_id', how = 'left')
+
+# ────── Building the main data file and renaming the columns ────────────────────────────────────────────────────
+final_data = (df_games[["app_id", "release_date", "type", "currency", "price_final"]]
+    .merge(df_st_i[["app_id", "publisher", "owners_range", "concurrent_users_yesterday"]],on="app_id",how="left"))
+
+final_data = (final_data.merge(df_review[['app_id', 'review_score_x',
+        'positive','total', 'metacritic_score', 'recommendations','review_score_y']], on = 'app_id', how = 'left'))
+final_data = final_data.rename(columns={'release_date': 'date of release', 'review_score_x': 'review_score',
+    'recommendations':'num of recommendations', 'review_score_y':'semantic review score', 'price_final':'price in national currency',
+    'currency':'national currency', 'concurrent_users_yesterday':'current users at 30 of October 2024'})
+
+# Milestone saving
+# final_data.to_excel('final_data_4.xlsx',index = False)
+# final_data = pd.read_excel('final_data_4.xlsx')
+
+
+# ────── Separating the Owners_range into min and max columns and adding average ────────────────────────────────────────────────────
+s = final_data["owners_range"].astype(str)
+# Extract two numeric groups around `..` (any spacing)
+mm = s.str.extract(r'(?P<min_owner>[\d,]+)\s*\.\.\s*(?P<max_owner>[\d,]+)')
+# Remove commas, convert to numbers; invalid parses become NaN
+mm = mm.replace(",", "", regex=True).apply(pd.to_numeric, errors="coerce")
+# Assign back using nullable integers (keeps NaN)
+final_data[["min_owner", "max_owner"]] = mm.astype("Int64")
+final_data['average_owner'] = (final_data['min_owner'] + final_data['max_owner'])/2
+
+
+# ────── Create % engagement score ────────────────────────────────────────────────────
+final_data = final_data.replace("N", None)
+final_data['% Engagement Score'] = final_data['current users at 30 of October 2024']/final_data['average_owner']
+
+# ────── Create % positive reviews ────────────────────────────────────────────────────
+final_data['positive'] = pd.to_numeric(final_data['positive'], errors='coerce')
+final_data['total'] = pd.to_numeric(final_data['total'],    errors='coerce')
+final_data['% positive reviews'] = np.where(final_data['total'].gt(0),(final_data['positive'] / final_data['total']),np.nan)
+
+# ────── convert all prices to EUR. Exchange rates are taken as of: 31.10.2024 ────────────────────────────────────────────────────
+exchange_rates = {"EUR":1.0,"MXN":21.8237,"RUB":105.9929,"USD":1.0884,"CAD":1.5165,"BRL":6.3036,"SAR":4.0877,"GBP":0.844,"PEN":4.1005,"ILS":4.073,"KRW":1495.4201,"UAH":44.8361,"INR":91.5275,"PHP":63.4227,"IDR":17115.0813,"PLN":4.3528,"COP":4802.2869,"AUD":1.6547,"NZD":1.8229,"SGD":1.4363,"THB":36.8184,"CNY":7.7502,"KWD":0.3337,"KZT":531.1581,"MYR":4.7623,"TWD":34.6604,"JPY":165.3856,"AED":3.9943,"HKD":8.4621,"VND":27514.0,"NOK":11.9697}
+final_data['price in national currency'] = pd.to_numeric(final_data['price in national currency'], errors='coerce')
+rates = final_data['national currency'].map(exchange_rates)
+final_data['Price(eur)'] = final_data['price in national currency'] / rates
+
+# ────── remove all spaces in publisher names to increase data accuract for groupping ────────────────────────────────────────────────────
+final_data['publisher_technical'] = (final_data['publisher'].str.strip().str.lower().str.replace(" ", "", regex=False))
+
+# Milestone saving
+# final_data.to_excel('final_data_6.xlsx', index= False)
+# final_data = pd.read_excel('final_data_6.xlsx')
+
+# ────── KPI collection ────────────────────────────────────────────────────
+eng_rat = f.kpi_engagement_ratio(final_data)
+pos_rew = f.kpi_positive_review_share(final_data)
+acq_rate = f.kpi_owner_acquisition_rate(final_data)
+other_quality = f.kpi_three_other_quality_kpis(final_data)
+monet_eff = f.kpi_monitisation_efficiency(final_data)
+# get 0.5 for empty scores of semantic score
+other_quality['semantic_sentiment_index_log_norm'] = other_quality['semantic_sentiment_index_log_norm'].replace(0, 0.5).fillna(0.5)
+
+# ────── All KPIs column names ────────────────────────────────────────────────────
+print('────── All KPIs column names ────────────────────────────────────────────────────')
+print(f'monet_eff: {list(monet_eff)}')
+print(f'other_quality: {list(other_quality)}')
+print(f'acq_rate: {list(acq_rate)}')
+print(f'pos_rew: {list(pos_rew)}')
+print(f'eng_rat:  {list(eng_rat)}\n\n')
+
+# ────── KPI merger ────────────────────────────────────────────────────
+merger_key = 'publisher_technical'
+scorring_merged = pd.merge(pos_rew[['publisher_technical','publisher','app_id', '% positive reviews']],
+    other_quality[['publisher_technical','recommendation_index_log_norm','semantic_sentiment_index_log_norm','review_score_index_linear_norm']],
+    on= merger_key, how="left")
+scorring_merged = pd.merge(scorring_merged,acq_rate[['publisher_technical', 'growth_potential_mean_log_norm']],on=merger_key, how="left")
+scorring_merged = pd.merge(scorring_merged,monet_eff[['publisher_technical','monetizing_efficiency_log_norm']],on=merger_key, how="left")
+scorring_merged = pd.merge(scorring_merged,eng_rat[['publisher_technical', '% Engagement Score_linear_norm']],on=merger_key, how="left")
+f.time_helper('KPIs meerged')
+
+# ────── KPI types creation ────────────────────────────────────────────────────
+scorring_merged['Quality'] = (scorring_merged['% positive reviews'] + scorring_merged['review_score_index_linear_norm']
+    + scorring_merged['semantic_sentiment_index_log_norm'] + scorring_merged['recommendation_index_log_norm'])/4
+scorring_merged['Revenue'] = scorring_merged['monetizing_efficiency_log_norm']
+scorring_merged['Growth'] =  scorring_merged['growth_potential_mean_log_norm']
+scorring_merged['Engagement'] = scorring_merged['% Engagement Score_linear_norm']
+
+# ────── Weights, final score compilation ────────────────────────────────────────────────────
+weights = {'Quality': 0.4, 'Revenue': 0.3, 'Growth': 0.2, 'Engagement':0.1}
+scorring_merged['Final Score'] = scorring_merged[list(weights.keys())].dot(list(weights.values()))
+scorring_merged = scorring_merged.sort_values(by="Final Score", ascending=False).reset_index(drop=True)
+
+# ────── Performance of final checks ────────────────────────────────────────────────────
+# f.stat_histogram(acq_rate,'growth_potential_mean_log_norm')
+# f.stat_simple_plot(acq_rate,'growth_potential_mean_log_norm')
+# f.stat_simple_plot(acq_rate,'growth_potential_mean_linear_norm')
+# f.stat_histogram(pos_rew, '% positive reviews')
+# f.stat_simple_plot(eng_rat,'% Engagement Score_linear_norm')
+
+# ────── Final KPIs Column names ────────────────────────────────────────────────────
+print('────── Final KPIs Column names ────────────────────────────────────────────────────')
+print(f'scorring_merged: {list(scorring_merged)}')
+
+# ────── Final Statistics ────────────────────────────────────────────────────
+# for i in ['% positive reviews', 'recommendation_index_log_norm', 'semantic_sentiment_index_log_norm', 'review_score_index_linear_norm', 'growth_potential_mean_log_norm', 'monetizing_efficiency_log_norm', '% Engagement Score_linear_norm', 'Quality', 'Revenue', 'Growth', 'Engagement']:
+#     f.stat_simple_plot(scorring_merged,i)
+#     f.stat_histogram(scorring_merged,i)
+
+# ────── Saving results ────────────────────────────────────────────────────
+HERE = Path(__file__).resolve()
+REPO_ROOT = HERE.parent.parent
+DATA_PROCESSED = REPO_ROOT / "data" / "procesed"
+
+DATA_PROCESSED.mkdir(parents=True, exist_ok=True)
+
+output_file = DATA_PROCESSED / "scorring_merged_Winners.xlsx"
+scorring_merged.to_excel(output_file, index=False)
+f.time_helper('Done!')
+
+
+
+
+
+
+
+
+
